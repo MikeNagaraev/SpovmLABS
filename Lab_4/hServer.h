@@ -5,7 +5,7 @@
 #include <list>
 #include <iterator>
 #include <string>
-
+#include <exception>
 #else
 #include <unistd.h>
 #include <sys/wait.h>
