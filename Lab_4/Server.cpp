@@ -29,7 +29,6 @@ void MainProcess(char *prog) {
 		return;
 	}
 	while (1) {
-
 	}
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
