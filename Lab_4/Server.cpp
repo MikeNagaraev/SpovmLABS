@@ -11,7 +11,8 @@ void MainProcess(char *prog) {
 	Print1 = CreateSemaphore(NULL, 0, 1, "Print1");
 	Print2 = CreateSemaphore(NULL, 0, 1, "Print2");
 	Print3 = CreateSemaphore(NULL, 0, 1, "Print3");
-	if (!CreateProcess(prog, "menu process", NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
+	if (!CreateProcess(prog, "menu process", NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL,
+		NULL, &si, &pi)) {
 		printf_s("Create Process failed %d\n", GetLastError());
 		return;
 	}
@@ -59,10 +60,10 @@ DWORD WINAPI funcPrint_1(LPVOID lpParam) {
 			}
 		}
 		else {
-			throw "Opening directory failed.";
+			throw new exception("Opening directory failed.");
 		}
 	}
-	catch (char *s) {
+	catch (exception *s) {
 		cout << "Error: " << s << endl;
 	}
 	FindClose(hFind);
@@ -84,10 +85,10 @@ DWORD WINAPI funcPrint_2(LPVOID lpParam) {
 			}
 		}
 		else {
-			throw "Opening directory failed.";
+			throw new exception("Opening directory failed.");
 		}
 	}
-	catch (char *s) {
+	catch (exception *s) {
 		cout << "Error: " << s << endl;
 	}
 	FindClose(hFind);
@@ -110,10 +111,10 @@ DWORD WINAPI funcPrint_3(LPVOID lpParam) {
 			}
 		}
 		else {
-			throw "Opening directory failed.";
+			throw new exception("Opening directory failed.");
 		}
 	}
-	catch (char *s) {
+	catch (exception *s) {
 		cout << "Error: " << s << endl;
 	}
 	FindClose(hFind);
@@ -192,7 +193,6 @@ void getMenu(string s[])
 	cout << "4 - Stop All: " << endl;
 }
 #else
-#include "hServer.h"
 int fd;
 char readbuffer[BUF_SIZE];
 pthread_t thread[3];
