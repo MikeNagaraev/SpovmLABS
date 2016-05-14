@@ -11,8 +11,8 @@ void MainProcess(char *prog) {
 	Print1 = CreateSemaphore(NULL, 0, 1, "Print1");
 	Print2 = CreateSemaphore(NULL, 0, 1, "Print2");
 	Print3 = CreateSemaphore(NULL, 0, 1, "Print3");
-	if (!CreateProcess(prog, "menu process", NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, 
-                           NULL, &si, &pi)) {
+	if (!CreateProcess(prog, "menu process", NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL,
+		NULL, &si, &pi)) {
 		printf_s("Create Process failed %d\n", GetLastError());
 		return;
 	}
@@ -59,10 +59,10 @@ DWORD WINAPI funcPrint_1(LPVOID lpParam) {
 			}
 		}
 		else {
-			throw "Opening directory failed.";
+			throw new exception("Opening directory failed.");
 		}
 	}
-	catch (char *s) {
+	catch (exception *s) {
 		cout << "Error: " << s << endl;
 	}
 	FindClose(hFind);
@@ -84,10 +84,10 @@ DWORD WINAPI funcPrint_2(LPVOID lpParam) {
 			}
 		}
 		else {
-			throw "Opening directory failed.";
+			throw new exception("Opening directory failed.");
 		}
 	}
-	catch (char *s) {
+	catch (exception *s) {
 		cout << "Error: " << s << endl;
 	}
 	FindClose(hFind);
@@ -110,10 +110,10 @@ DWORD WINAPI funcPrint_3(LPVOID lpParam) {
 			}
 		}
 		else {
-			throw "Opening directory failed.";
+			throw new exception("Opening directory failed.");
 		}
 	}
-	catch (char *s) {
+	catch (exception *s) {
 		cout << "Error: " << s << endl;
 	}
 	FindClose(hFind);
@@ -192,18 +192,17 @@ void getMenu(string s[])
 	cout << "4 - Stop All: " << endl;
 }
 #else
-#include "hServer.h"
 int fd;
 char readbuffer[BUF_SIZE];
 pthread_t thread[3];
 sem_t semaphore_1, semaphore_2, semaphore_3;
+int check[3] = { 0,0,0 };
 void *thread_func1(void *arg) {
 	while (true) {
 		sem_wait(&semaphore_1);
 		DIR *d;
 		struct dirent *dirr;
 		d = opendir(PATH1);
-
 		if (d) {
 			while ((dirr = readdir(d)) != NULL) {
 				printf("%s\n", dirr->d_name);
@@ -214,7 +213,9 @@ void *thread_func1(void *arg) {
 		else {
 			perror("Opendir");
 		}
-		sem_post(&semaphore_1);
+		if (check[0] == 1) {
+			sem_post(&semaphore_1);
+		}
 	}
 }
 void *thread_func2(void *arg) {
@@ -233,7 +234,9 @@ void *thread_func2(void *arg) {
 		else {
 			perror("Opendir");
 		}
-		sem_post(&semaphore_2);
+		if (check[1] == 1) {
+			sem_post(&semaphore_2);
+		}
 	}
 }
 void *thread_func3(void *arg) {
@@ -252,63 +255,63 @@ void *thread_func3(void *arg) {
 		else {
 			perror("Opendir");
 		}
-		sem_post(&semaphore_3);
+		if (check[2] == 1) {
+			sem_post(&semaphore_3);
+		}
 	}
 }
 void connection() {
 
-	bool stop_or_start[3] = { false,false,false };
 	while (true) {
 		memset(readbuffer, '\0', BUF_SIZE);
-
+		pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 		if ((read(fd, readbuffer, BUF_SIZE - 1)) > 0) {
 
 			int k = atoi(readbuffer);
 			switch (k) {
 			case 1: {
-				if (!stop_or_start[0]) {
-					stop_or_start[0] = true;
+
+				if (check[0] == 0) {
 					sem_post(&semaphore_1);
+					check[0] = 1;
 				}
 				else {
-					stop_or_start[0] = false;
-					sem_post(&semaphore_1);
+					check[0] = 0;
 				}
 				break;
 			}
 			case 2: {
-				if (!stop_or_start[1]) {
-					stop_or_start[1] = true;
+
+				if (check[1] == 0) {
 					sem_post(&semaphore_2);
+					check[1] = 1;
 				}
 				else {
-					stop_or_start[1] = false;
-					sem_post(&semaphore_2);
+					check[1] = 0;
 				}
 				break;
 			}
 			case 3: {
-				if (!stop_or_start[2]) {
-					stop_or_start[2] = true;
+
+				if (check[2] == 0) {
 					sem_post(&semaphore_3);
+					check[2] = 1;
 				}
 				else {
-					stop_or_start[2] = false;
-					sem_post(&semaphore_3);
+					check[2] = 0;
 				}
 				break;
 			}
 			case 4: {
-				if (stop_or_start[0]) {
-					sem_wait(&semaphore_1);
+				for (int i = 0; i < 3; i++) {
+					pthread_cancel(thread[i]);
 				}
-				if (stop_or_start[1]) {
-					sem_wait(&semaphore_2);
-				}
-				if (stop_or_start[2]) {
-					sem_wait(&semaphore_3);
-				}
-				break;
+				sem_destroy(&semaphore_1);
+				sem_destroy(&semaphore_2);
+				sem_destroy(&semaphore_3);
+				close(fd);
+				remove(NAMEDPIPE_NAME);
+				return;
 			}
 			}
 		}
@@ -318,7 +321,6 @@ void connection() {
 		}
 	}
 }
-
 #endif
 int main(int argc, char *argv[]) {
 #ifdef _MSC_VER
